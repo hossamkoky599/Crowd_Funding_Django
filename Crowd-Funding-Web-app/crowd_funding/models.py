@@ -62,3 +62,42 @@ class PasswordReset(models.Model):
 
     def __str__(self):
         return f"Password reset for {self.user.email}"
+
+###Projects model 
+class Projects(models.Model):
+    id=models.AutoField(primary_key=True)
+    title=models.CharField(max_length=30)
+    details=models.TextField()
+    totalTarget=models.FloatField()
+    startTime=models.DateTimeField()
+    endTime=models.DateTimeField()
+    uid=models.ForeignKey('User',on_delete=models.CASCADE)
+    category=models.ForeignKey('Category',on_delete=models.SET_NULL,null=True)
+    tags=models.ManyToManyField('Tag',blank=True)
+
+    def __str__(self):
+        return self.title
+
+## Category Model
+class Category(models.Model):
+    id=models.AutoField(primary_key=True)
+    name=models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.name
+
+### Tags Model 
+class Tag(models.Model):
+    id=models.AutoField(primary_key=True)
+    name=models.CharField(max_length=30,unique=True)
+
+    def __str__(self):
+        return self.name
+    
+## Projects Images 
+class ProjectImages(models.Model):
+    project=models.ForeignKey('Projects',related_name='images',on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='projects_Images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    

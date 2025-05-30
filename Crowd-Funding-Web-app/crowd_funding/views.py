@@ -1,7 +1,11 @@
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
 from rest_framework import generics, status, views, viewsets
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.core.mail import send_mail
+from django.shortcuts import render
 from django.conf import settings
 from .models import User, EmailActivation, PasswordReset
 from .serializers import *
@@ -47,8 +51,10 @@ class UserLoginView(views.APIView):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
         return Response({
             "message": "Login successful.",
+            "token": token.key,
             "user": UserProfileSerializer(user).data
         })
 
@@ -94,3 +100,41 @@ class UserProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+    
+###Projects viewsets\
+class ProjectView(viewsets.ModelViewSet):
+    queryset=Projects.objects.prefetch_related("tags","images").all()
+    serializer_class=ProjectSerializer
+    permission_classes = [IsAuthenticated]
+    ## list the projects in the templates
+    # def list(self,request,*args,**kwargs):
+    #     projects = self.get_queryset()
+    #     return render(request, 'projects.html', {'projects': projects})
+    def perform_create(self, serializer):
+        serializer.save(uid=self.request.user)
+
+    ### add image for custom project view url "add-image" 
+    @action(detail=True,methods=['POST'],url_path='add-image') 
+    def add_image(self,request,pk=None):
+        project=self.get_object()
+        serializer=ProjectImagesSerializer( data=request.data)
+        if serializer.is_valid():
+            serializer.save(project=project)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    ##Custom Update Method
+    def update(self, request, *args, **kwargs):
+        project = self.get_object()
+        serializer = self.get_serializer(project, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        ## if there is new tags in the updated data add them to itis project
+        if 'tag_ids' in request.data:
+            project.tags.set(request.data['tag_ids'])
+##Logout
+class LogoutView(views.APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        request.user.auth_token.delete()
+        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)

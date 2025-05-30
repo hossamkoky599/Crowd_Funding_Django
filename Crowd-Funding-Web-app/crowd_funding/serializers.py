@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.backends import ModelBackend
-from .models import User
+from .models import *
 import re
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -84,3 +84,56 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'first_name', 'last_name', 'email', 'mobile_phone', 'profile_picture']
         read_only_fields = ['id', 'email']
+
+## category 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Category
+        fields=['id','name']
+## Tags
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Tag
+        fields=['id','name']
+## Project Pictures
+class ProjectImagesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProjectImages
+        fields=['id','image','uploaded_at']
+## project serializer
+
+class ProjectSerializer(serializers.ModelSerializer):
+    category = CategorySerializer()
+    tags = TagSerializer(many=True,)
+    images = ProjectImagesSerializer(many=True, read_only=True)
+    # category_id = serializers.PrimaryKeyRelatedField(
+    #     queryset=Category.objects.all(),
+    #     source='category',
+    #     write_only=True
+    # )
+    # tag_ids = serializers.PrimaryKeyRelatedField(
+    #     many=True,
+    #     queryset=Tag.objects.all(),
+    #     source='tags',
+    #     write_only=True
+    # )
+    class Meta:
+        model=Projects
+        fields=['id','title','details','totalTarget','startTime','endTime','uid','category', 'tags','images']
+        extra_kwargs = {
+            'uid': {'read_only': True}  
+        }
+    def create(self,validated_data):
+        ##get the incoming ctargory and tags from FR
+        category = validated_data.pop('category')
+        tags = validated_data.pop('tags')
+        ## Use Get or create DRF BIN
+        newcategory, _ = Category.objects.get_or_create(name=category['name'])
+        ## Same as tags but it sore as list
+        newtags = []
+        for tag in tags:
+            newtag,_=Tag.objects.get_or_create(name=tag['name'])
+            newtags.append(newtag)
+        project=Projects.objects.create(category=newcategory,**validated_data)
+        project.tags.set(newtags)
+        return project
