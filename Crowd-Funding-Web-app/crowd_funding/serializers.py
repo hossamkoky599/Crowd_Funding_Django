@@ -123,6 +123,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'uid': {'read_only': True}  
         }
+    
+
     def create(self,validated_data):
         ##get the incoming ctargory and tags from FR
         category = validated_data.pop('category')
@@ -137,3 +139,49 @@ class ProjectSerializer(serializers.ModelSerializer):
         project=Projects.objects.create(category=newcategory,**validated_data)
         project.tags.set(newtags)
         return project
+    
+
+    ##################################
+    # Project Details
+class DonationSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
+
+    class Meta:
+        model = Donation
+        fields = ['id', 'project', 'user', 'amount', 'created_at']
+        read_only_fields = ['user', 'created_at']
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
+    replies = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'project', 'user', 'content', 'created_at', 'parent', 'replies']
+        read_only_fields = ['user', 'created_at']
+
+    def get_replies(self, obj):
+        if obj.replies.exists():
+            return CommentSerializer(obj.replies.all(), many=True).data
+        return []
+
+class ReportSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True, allow_null=True)
+    comment = CommentSerializer(read_only=True, allow_null=True)
+
+    class Meta:
+        model = Report
+        fields = ['id', 'report_type', 'project', 'comment', 'user', 'reason', 'created_at']
+        read_only_fields = ['user', 'created_at']
+
+class RatingSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+    project = ProjectSerializer(read_only=True)
+
+    class Meta:
+        model = Rating
+        fields = ['id', 'project', 'user', 'score', 'created_at']
+        read_only_fields = ['user', 'created_at']

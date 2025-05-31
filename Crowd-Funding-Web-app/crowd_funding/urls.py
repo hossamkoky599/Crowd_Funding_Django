@@ -14,4 +14,16 @@ urlpatterns = [
     path('reset-password/<uuid:reset_key>/', PasswordResetConfirmView.as_view(), name='reset-password'),
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    #############################
+    path('check-auth/', CheckAuthView.as_view(), name='check-auth'),
+    path('projects/<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
+    path('projects/<int:pk>/similar/', SimilarProjectsView.as_view(), name='similar-projects'),
+    path('comments/', CommentCreateView.as_view(), name='comment-create'),
+    path('ratings/', RatingCreateView.as_view(), name='rating-create'),
+    path('reports/', ReportCreateView.as_view(), name='report-create'),
+    path('donations/', DonationCreateView.as_view(), name='donation-create'),
+    path('projects/<int:pk>/cancel/', CancelProjectView.as_view(), name='cancel-project'),
+    path('projects/<int:pk>/template/', project_detail_template, name='project-detail-template'),
+
 ]
+

@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">{{ project.title }}</h1>
+        <div class="swiper-container">
+            <div class="swiper-wrapper">
+                {% for image in project.images.all %}
+                    <div class="swiper-slide">
+                        <img src="{{ image.image.url }}" alt="Project Image" class="w-full h-64 object-cover">
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="swiper-pagination"></div>
+        </div>
+        <p class="mt-4">{{ project.details }}</p>
+        <p><strong>Category:</strong> {{ project.category.name|default:"No category" }}</p>
+        {% comment %} <p><strong>Target:</strong> {{ project.totalTarget }} EGP</p> {% endcomment %}
+        {% comment %} <p><strong>Raised:</strong> {{ project.donations.aggregate(total=models.Sum('amount')).total|default:0 }} EGP</p> {% endcomment %}
+        <p><strong>Rating:</strong> {{ project.average_rating|floatformat:1 }} stars</p>
+        <p><strong>Tags:</strong> {% for tag in project.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% empty %}No tags{% endfor %}</p>
+        <p><strong>Duration:</strong> {{ project.startTime|date:"M d, Y" }} to {{ project.endTime|date:"M d, Y" }}</p>
+
+        {% if user.is_authenticated and user == project.uid and project.can_cancel %}
+            <form action="{% url 'cancel-project' project.id %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 mt-4">Cancel Project</button>
+            </form>
+        {% endif %}
+
+        <h2 class="text-2xl font-bold mt-8">Donate</h2>
+        {% if user.is_authenticated %}
+            <form action="{% url 'donation-create' %}" method="POST" class="mt-4">
+                {% csrf_token %}
+                <input type="hidden" name="project_id" value="{{ project.id }}">
+                <input type="number" name="amount" min="0.01" step="0.01" class="border p-2" placeholder="Enter donation amount">
+                <button type="submit" class="bg-green-500 text-white px-4 py-2">Donate</button>
+            </form>
+        {% else %}
+            <p class="mt-4">Please <a href="{% url 'login' %}" class="text-blue-500">log in</a> to donate.</p>
+        {% endif %}
+
+        <h2 class="text-2xl font-bold mt-8">Comments</h2>
+        {% for comment in project.comments.all %}
+            <div class="border p-4 mb-2">
+                <p><strong>{{ comment.user.email }}</strong> - {{ comment.created_at|date:"M d, Y" }}</p>
+                <p>{{ comment.content }}</p>
+                {% for reply in comment.replies.all %}
+                    <div class="ml-8 border-l-2 pl-4">
+                        <p><strong>{{ reply.user.email }}</strong> - {{ comment.created_at|date:"M d, Y" }}</p>
+                        <p>{{ reply.content }}</p>
+                    </div>
+                {% endfor %}
+                {% if user.is_authenticated %}
+                    <form action="{% url 'comment-create' %}" method="POST" class="mt-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="project_id" value="{{ project.id }}">
+                        <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                        <textarea name="content" class="border p-2 w-full" placeholder="Reply..."></textarea>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2">Reply</button>
+                    </form>
+                    <a href="{% url 'report-create' %}?comment_id={{ comment.id }}" class="text-red-500">Report Comment</a>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p>No comments yet.</p>
+        {% endfor %}
+        {% if user.is_authenticated %}
+            <form action="{% url 'comment-create' %}" method="POST" class="mt-4">
+                {% csrf_token %}
+                <input type="hidden" name="project_id" value="{{ project.id }}">
+                <textarea name="content" class="border p-2 w-full" placeholder="Add a comment..."></textarea>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2">Comment</button>
+            </form>
+            <a href="{% url 'report-create' %}?project_id={{ project.id }}" class="text-red-500">Report Project</a>
+        {% else %}
+            <p class="mt-4">Please <a href="{% url 'login' %}" class="text-blue-500">log in</a> to comment or report.</p>
+        {% endif %}
+
+        <h2 class="text-2xl font-bold mt-8">Rate this Project</h2>
+        {% if user.is_authenticated %}
+            <form action="{% url 'rating-create' %}" method="POST" class="mt-4">
+                {% csrf_token %}
+                <input type="hidden" name="project_id" value="{{ project.id }}">
+                <select name="score" class="border p-2">
+                    {% for i in "12345" %}
+                        <option value="{{ i }}">{{ i }} Star{{ i|add:"0" }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="bg-yellow-500 text-white px-4 py-2">Rate</button>
+            </form>
+        {% else %}
+            <p class="mt-4">Please <a href="{% url 'login' %}" class="text-blue-500">log in</a> to rate.</p>
+        {% endif %}
+
+        <h2 class="text-2xl font-bold mt-8">Similar Projects</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {% for similar in similar_projects %}
+                <div class="border p-4">
+                    <h3 class="text-xl font-bold">{{ similar.title }}</h3>
+                    <p>{{ similar.details|truncatewords:20 }}</p>
+                    <a href="{% url 'project-detail' similar.id %}" class="text-blue-500">View Project</a>
+                </div>
+            {% empty %}
+                <p>No similar projects found.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script>
+        var swiper = new Swiper('.swiper-container', {
+            loop: true,
+            pagination: {
+                el: '.swiper-pagination',
+            },
+        });
+    </script>
+</body>
+</html>

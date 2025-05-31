@@ -64,24 +64,15 @@ class PasswordReset(models.Model):
         return f"Password reset for {self.user.email}"
 
 ###Projects model 
-class Projects(models.Model):
-    id=models.AutoField(primary_key=True)
-    title=models.CharField(max_length=30)
-    details=models.TextField()
-    totalTarget=models.FloatField()
-    startTime=models.DateTimeField()
-    endTime=models.DateTimeField()
-    uid=models.ForeignKey('User',on_delete=models.CASCADE)
-    category=models.ForeignKey('Category',on_delete=models.SET_NULL,null=True)
-    tags=models.ManyToManyField('Tag',blank=True)
-
-    def __str__(self):
-        return self.title
 
 ## Category Model
 class Category(models.Model):
     id=models.AutoField(primary_key=True)
     name=models.CharField(max_length=30)
+    created_at = models.DateTimeField(auto_now_add=True) 
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  #
+
+
 
     def __str__(self):
         return self.name
@@ -93,6 +84,33 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Projects(models.Model):
+    id=models.AutoField(primary_key=True)
+    title=models.CharField(max_length=30)
+    details=models.TextField()
+    totalTarget=models.FloatField()
+    startTime=models.DateTimeField()
+    endTime=models.DateTimeField()
+    uid=models.ForeignKey('User',on_delete=models.CASCADE) # naming creator would be better
+    category=models.ForeignKey('Category',on_delete=models.SET_NULL,null=True)
+    tags=models.ManyToManyField('Tag',blank=True)
+
+
+##########################NOTE
+
+
+    def can_cancel(self):
+        total_donations = sum(donation.amount for donation in self.donations.all())
+        return total_donations < (self.totalTarget * 0.25)
+
+
+
+    def __str__(self):
+        return self.title
+
+
     
 ## Projects Images 
 class ProjectImages(models.Model):
@@ -100,4 +118,55 @@ class ProjectImages(models.Model):
     image = models.ImageField(upload_to='projects_Images/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
+    #####################################
+
+# Project Details 
+
+class Donation(models.Model):
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='donations')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} donated {self.amount} to {self.project.title}"
+    #######################################3
+class Comment(models.Model):
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies') # الجزء دة عشان ال replay on comments  self relation
+
+    def __str__(self):
+        return f"Comment by {self.user.email} on {self.project.title}"
+    #########################################3
+
+class Report(models.Model):
+    REPORT_TYPES = (
+        ('PROJECT', 'Project'),
+        ('COMMENT', 'Comment'),
+    )
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES)
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, null=True, blank=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report by {self.user.email} on {self.report_type}"
+    
+    ##############################33
+class Rating(models.Model):
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='ratings')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    score = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # 1 to 5
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['project', 'user'] # عشان اليوزر مايقيمش نفس المشروع مرتين
+
+    def __str__(self):
+        return f"{self.user.email} rated {self.project.title} {self.score}"
     

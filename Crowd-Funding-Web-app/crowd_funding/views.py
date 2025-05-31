@@ -1,13 +1,15 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from rest_framework import generics, status, views, viewsets
+from rest_framework import generics, status, views, viewsets, permissions
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.core.mail import send_mail
-from django.shortcuts import render
+from django.shortcuts import render ,get_object_or_404
 from django.conf import settings
-from .models import User, EmailActivation, PasswordReset
+from django.contrib.auth import login
+from .models import User, EmailActivation, PasswordReset, Projects, Comment, Rating, Report, Donation
 from .serializers import *
 import uuid
 ### Try With Unautheticated
@@ -45,18 +47,32 @@ class ActivateAccountView(views.APIView):
             return Response({"error": "Invalid activation key."}, status=status.HTTP_400_BAD_REQUEST)
 
 # Login
-class UserLoginView(views.APIView):
-    permission_classes = [AllowAny]               ###### Try as Unautheticated
+# class UserLoginView(views.APIView):
+#     permission_classes = [AllowAny]               ###### Try as Unautheticated
+#     def post(self, request):
+#         serializer = UserLoginSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         user = serializer.validated_data['user']
+#         token, created = Token.objects.get_or_create(user=user)
+#         return Response({
+#             "message": "Login successful.",
+#             "token": token.key,
+#             "user": UserProfileSerializer(user).data
+#         })
+
+
+class UserLoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
+        login(request, user)  # Create session
         return Response({
             "message": "Login successful.",
-            "token": token.key,
             "user": UserProfileSerializer(user).data
         })
+
 
 # Request password reset
 class PasswordResetRequestView(views.APIView):
@@ -138,3 +154,97 @@ class LogoutView(views.APIView):
     def post(self, request):
         request.user.auth_token.delete()
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
+    
+    ###################################3
+# Project Details 
+
+
+class CheckAuthView(APIView):
+    def get(self, request):
+        if request.user.is_authenticated:
+            return Response({'is_authenticated': True, 'email': request.user.email})
+        return Response({'is_authenticated': False})
+
+class ProjectDetailView(generics.RetrieveAPIView):
+    queryset = Projects.objects.all()
+    serializer_class = ProjectSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class SimilarProjectsView(APIView):
+    def get(self, request, pk):
+        try:
+            project = Projects.objects.get(pk=pk)
+            tags = project.tags.all()
+            similar_projects = Projects.objects.filter(tags__in=tags).exclude(pk=pk).distinct()[:4]
+            serializer = ProjectSerializer(similar_projects, many=True, context={'request': request})
+            return Response(serializer.data)
+        except Projects.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+class CommentCreateView(generics.CreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        project_id = self.request.data.get('project_id')
+        parent_id = self.request.data.get('parent_id')
+        serializer.save(
+            user=self.request.user,
+            project=Projects.objects.get(pk=project_id),
+            parent=Comment.objects.get(pk=parent_id) if parent_id else None
+        )
+
+class RatingCreateView(generics.CreateAPIView):
+    queryset = Rating.objects.all()
+    serializer_class = RatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        project_id = self.request.data.get('project_id')
+        serializer.save(user=self.request.user, project=Projects.objects.get(pk=project_id))
+
+class ReportCreateView(generics.CreateAPIView):
+    queryset = Report.objects.all()
+    serializer_class = ReportSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        project_id = self.request.data.get('project_id')
+        comment_id = self.request.data.get('comment_id')
+        serializer.save(
+            user=self.request.user,
+            project=Projects.objects.get(pk=project_id) if project_id else None,
+            comment=Comment.objects.get(pk=comment_id) if comment_id else None
+        )
+
+class DonationCreateView(generics.CreateAPIView):
+    queryset = Donation.objects.all()
+    serializer_class = DonationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        project_id = self.request.data.get('project_id')
+        serializer.save(user=self.request.user, project=Projects.objects.get(pk=project_id))
+
+class CancelProjectView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            project = Projects.objects.get(pk=pk, uid=request.user)
+            if project.can_cancel():
+                project.delete()  # بنحذف المشروع عشان is_active مش موجود
+                return Response({"message": "Project cancelled successfully"})
+            return Response({"error": "Cannot cancel project"}, status=status.HTTP_400_BAD_REQUEST)
+        except Projects.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+def project_detail_template(request, pk):
+    project = get_object_or_404(Projects, pk=pk)
+    tags = project.tags.all()
+    similar_projects = Projects.objects.filter(tags__in=tags).exclude(pk=pk).distinct()[:4]
+    return render(request, 'projects.html', {
+        'project': project,
+        'similar_projects': similar_projects
+    })
