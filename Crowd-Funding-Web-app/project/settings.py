@@ -83,7 +83,7 @@ DATABASES = {
         'PORT': config('DB_PORT', default='5432'),
     }
 }
-
+# print(f"Database: {os.getenv('DB_NAME')}")
 ### The Custom User Model
 AUTH_USER_MODEL = 'crowd_funding.User'
 
@@ -125,7 +125,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 15,
 }
 
 # # إعدادات CORS

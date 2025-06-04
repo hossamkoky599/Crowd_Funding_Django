@@ -67,9 +67,10 @@ class UserLoginView(APIView):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
-        login(request, user)  # Create session
+        token, created = Token.objects.get_or_create(user=user)
         return Response({
             "message": "Login successful.",
+            "token": token.key,
             "user": UserProfileSerializer(user).data
         })
 
@@ -122,11 +123,19 @@ class ProjectView(viewsets.ModelViewSet):
     queryset=Projects.objects.prefetch_related("tags","images").all()
     serializer_class=ProjectSerializer
     permission_classes = [IsAuthenticated]
+    ##Pass the data to the serialziers
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
     ## list the projects in the templates
     # def list(self,request,*args,**kwargs):
     #     projects = self.get_queryset()
     #     return render(request, 'projects.html', {'projects': projects})
     def perform_create(self, serializer):
+        ##log errors
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)
         serializer.save(uid=self.request.user)
 
     ### add image for custom project view url "add-image" 
@@ -144,10 +153,9 @@ class ProjectView(viewsets.ModelViewSet):
         serializer = self.get_serializer(project, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-
         ## if there is new tags in the updated data add them to itis project
-        if 'tag_ids' in request.data:
-            project.tags.set(request.data['tag_ids'])
+        if 'tags' in request.data:
+            project.tags.set(request.data['tags'])
 ##Logout
 class LogoutView(views.APIView):
     permission_classes = [IsAuthenticated]

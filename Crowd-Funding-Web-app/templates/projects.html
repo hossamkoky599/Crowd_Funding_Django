@@ -49,7 +49,7 @@
         {% endif %}
 
         <h2 class="text-2xl font-bold mt-8">Comments</h2>
-        {% for comment in project.comments.all %}
+        <!-- {% for comment in project.comments.all %}
             <div class="border p-4 mb-2">
                 <p><strong>{{ comment.user.email }}</strong> - {{ comment.created_at|date:"M d, Y" }}</p>
                 <p>{{ comment.content }}</p>
@@ -58,7 +58,7 @@
                         <p><strong>{{ reply.user.email }}</strong> - {{ comment.created_at|date:"M d, Y" }}</p>
                         <p>{{ reply.content }}</p>
                     </div>
-                {% endfor %}
+                {% endfor %} -->
                 {% if user.is_authenticated %}
                     <form action="{% url 'comment-create' %}" method="POST" class="mt-2">
                         {% csrf_token %}
