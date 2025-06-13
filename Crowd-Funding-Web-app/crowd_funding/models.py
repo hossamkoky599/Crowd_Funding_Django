@@ -100,12 +100,13 @@ class Projects(models.Model):
     totalTarget=models.FloatField()
     startTime=models.DateTimeField()
     endTime=models.DateTimeField()
-    uid=models.ForeignKey('User',on_delete=models.CASCADE) # naming creator would be better
+    uid=models.ForeignKey('User',on_delete=models.CASCADE)
     category=models.ForeignKey('Category',on_delete=models.SET_NULL,null=True)
     tags=models.ManyToManyField('Tag',blank=True)
     is_featured = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)  
+    is_canceled = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
-
 
 ##########################NOTE
 
