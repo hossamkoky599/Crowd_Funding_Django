@@ -322,16 +322,13 @@ class ProfileView(APIView):
 #         "featured_projects": ProjectSerializer(featured, many=True).data
 #     })
 
+
 @api_view(['GET'])
 def home_projects(request):
     latest_projects = Projects.objects.filter( is_canceled=False).order_by('-created_at')[:5]
-    featured_projects = Projects.objects.filter(is_canceled=False, is_featured=True).order_by('-created_at')[:5]
 
     latest_serializer = ProjectSerializer(latest_projects, many=True, context={'request': request})
-    featured_serializer = ProjectSerializer(featured_projects, many=True, context={'request': request})
 
     return Response({
         "latest_projects": latest_serializer.data,
-        "featured_projects": featured_serializer.data
     })
-
