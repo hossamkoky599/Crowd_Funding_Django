@@ -1,11 +1,8 @@
-from requests import Response
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.backends import ModelBackend
-
-import project
 from .models import *
 import re
 
@@ -215,3 +212,82 @@ class RatingSerializer(serializers.ModelSerializer):
             ProjectImages.objects.create(project=project, image=image) 
         return project
 ## (add Project and list all projects)
+class ExtraInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExtraInfo
+        fields = ['birth_date', 'facebook_profile', 'country']
+        # exclude user so frontend doesn't have to send it
+
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    projects = serializers.SerializerMethodField()
+    donations = serializers.SerializerMethodField()
+    extra_info = ExtraInfoSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'email', 'mobile_phone', 'profile_picture', 'extra_info','projects', 'donations']
+
+    def get_projects(self, obj):
+        user_projects = Projects.objects.filter(uid=obj)
+        return ProjectSerializer(user_projects, many=True, context=self.context).data
+
+    def get_donations(self, obj):
+        user_donations = Donation.objects.filter(user=obj)
+        return DonationSerializer(user_donations, many=True, context=self.context).data
+
+class UpdateUserProfileSerializer(serializers.ModelSerializer):
+    new_password = serializers.CharField(write_only=True, required=False)
+    confirm_password = serializers.CharField(write_only=True, required=False)
+    current_password = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'mobile_phone', 'profile_picture',
+                  'current_password', 'new_password', 'confirm_password']
+        extra_kwargs = {
+            'profile_picture': {'required': False}
+        }
+
+    def validate(self, data):
+        user = self.context['request'].user
+        if not user.check_password(data['current_password']):
+            raise serializers.ValidationError({'current_password': 'Current password is incorrect'})
+
+        if 'new_password' in data:
+            if data.get('new_password') != data.get('confirm_password'):
+                raise serializers.ValidationError({'confirm_password': 'Passwords do not match'})
+            validate_password(data['new_password'])
+
+        return data
+
+    def update(self, instance, validated_data):
+        validated_data.pop('current_password', None)
+        new_password = validated_data.pop('new_password', None)
+        validated_data.pop('confirm_password', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if new_password:
+            instance.set_password(new_password)
+
+        instance.save()
+        return instance
+
+    def create(self,validated_data):
+        ##get the incoming ctargory and tags from FR
+        category = validated_data.pop('category')
+        tags = validated_data.pop('tags')
+        ## Use Get or create DRF BIN
+        newcategory, _ = Category.objects.get_or_create(name=category['name'])
+        ## Same as tags but it sore as list
+        newtags = []
+        for tag in tags:
+            newtag,_=Tag.objects.get_or_create(name=tag['name'])
+            newtags.append(newtag)
+        project=Projects.objects.create(category=newcategory,**validated_data)
+        project.tags.set(newtags)
+        return project

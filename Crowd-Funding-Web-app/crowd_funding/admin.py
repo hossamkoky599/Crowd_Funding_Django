@@ -17,7 +17,7 @@
 # admin.site.register(PasswordReset)
 
 from django.contrib import admin
-from .models import User, EmailActivation, PasswordReset, Category, Tag, Projects, ProjectImages, Donation, Comment, Report, Rating
+from .models import User, EmailActivation, PasswordReset, Category, Tag, Projects, ProjectImages, Donation, Comment, Report, Rating,ExtraInfo
 
 # Register User model
 @admin.register(User)
@@ -95,3 +95,10 @@ class RatingAdmin(admin.ModelAdmin):
     list_display = ('user', 'project', 'score', 'created_at')
     list_filter = ('score', 'created_at')
     search_fields = ('user__email', 'project__title')
+
+
+
+@admin.register(ExtraInfo)
+class ExtraInfoAdmin(admin.ModelAdmin):
+    list_display = ('user', 'address', 'birth_date')
+    search_fields = ('user__email', 'address')

@@ -1,5 +1,5 @@
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action
+from rest_framework.decorators import action ,api_view
 from rest_framework import generics, status, views, viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib.auth import login
 from .models import User, EmailActivation, PasswordReset, Projects, Comment, Rating, Report, Donation
 from .serializers import *
+
 import uuid
 ### Try With Unautheticated
 from rest_framework.permissions import AllowAny
@@ -113,10 +114,12 @@ class PasswordResetConfirmView(views.APIView):
 
 # Get user profile
 class UserProfileView(generics.RetrieveAPIView):
-    serializer_class = UserProfileSerializer
+    # permission_classes = [IsAuthenticated]
 
-    def get_object(self):
-        return self.request.user
+    def get(self, request):
+        user = request.user
+        serializer = UserProfileSerializer(user, context={'request': request})
+        return Response(serializer.data)
     
 ###Projects viewsets\
 class ProjectView(viewsets.ModelViewSet):
@@ -129,7 +132,7 @@ class ProjectView(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
     ## list the projects in the templates
-    # def list(self,request,*args,**kwargs):
+    # def list(self,request,args,*kwargs):
     #     projects = self.get_queryset()
     #     return render(request, 'projects.html', {'projects': projects})
     def perform_create(self, serializer):
@@ -255,4 +258,77 @@ def project_detail_template(request, pk):
     return render(request, 'projects.html', {
         'project': project,
         'similar_projects': similar_projects
+    })
+# Extra user info view
+class ExtraInfoMeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        extra_info, created = ExtraInfo.objects.get_or_create(user=request.user)
+        serializer = ExtraInfoSerializer(extra_info)
+        return Response(serializer.data)
+
+    def put(self, request):
+        extra_info, created = ExtraInfo.objects.get_or_create(user=request.user)
+        serializer = ExtraInfoSerializer(extra_info, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# Delete user account
+class DeleteUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        password = request.data.get('password')
+        if not password:
+            return Response({'error': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        if not user.check_password(password):
+            return Response({'error': 'Incorrect password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.delete()
+        return Response({'message': 'Account deleted successfully.'}, status=status.HTTP_200_OK)
+
+# Update user profile
+class UpdateUserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        serializer = UpdateUserProfileSerializer(
+            request.user, data=request.data, partial=True, context={'request': request}
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Profile updated successfully.'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
+
+
+# api_view(['GET'])
+# def home_projects(request):
+#     latest = Projects.objects.order_by('-created_at')[:5]
+#     featured = Projects.objects.filter(is_featured=True)[:5]  
+#     return Response({
+#         "latest_projects": ProjectSerializer(latest, many=True).data,
+#         "featured_projects": ProjectSerializer(featured, many=True).data
+#     })
+
+
+@api_view(['GET'])
+def home_projects(request):
+    latest_projects = Projects.objects.filter( is_canceled=False).order_by('-created_at')[:5]
+
+    latest_serializer = ProjectSerializer(latest_projects, many=True, context={'request': request})
+
+    return Response({
+        "latest_projects": latest_serializer.data,
     })

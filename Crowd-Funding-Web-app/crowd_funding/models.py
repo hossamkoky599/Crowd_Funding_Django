@@ -39,6 +39,14 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['first_name', 'last_name', 'mobile_phone']
 
     objects = CustomUserManager()
+    
+class ExtraInfo(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="extra_info")
+    birth_date = models.DateField(null=True, blank=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    facebook_profile = models.URLField(blank=True, null=True)
+
 
 class EmailActivation(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -92,10 +100,13 @@ class Projects(models.Model):
     totalTarget=models.FloatField()
     startTime=models.DateTimeField()
     endTime=models.DateTimeField()
-    uid=models.ForeignKey('User',on_delete=models.CASCADE) # naming creator would be better
+    uid=models.ForeignKey('User',on_delete=models.CASCADE)
     category=models.ForeignKey('Category',on_delete=models.SET_NULL,null=True)
     tags=models.ManyToManyField('Tag',blank=True)
-
+    is_featured = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)  
+    is_canceled = models.BooleanField(default=False)  
+    created_at = models.DateTimeField(auto_now_add=True)
 
 ##########################NOTE
 
