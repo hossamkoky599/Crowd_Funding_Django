@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+
+# VSCode settings
+.vscode/
+
+# Migrations (optional – useful in dev only)
+**/migrations/
+!**/migrations/__init__.py
+
+# Virtual environment
+venv/
+.env
+~       
+# Media and static files
+/media/
