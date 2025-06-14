@@ -33,7 +33,7 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=30)
     mobile_phone = models.CharField(max_length=15, validators=[validate_egyptian_phone])
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'mobile_phone']

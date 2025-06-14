@@ -12,6 +12,10 @@ from django.contrib.auth import login
 from .models import User, EmailActivation, PasswordReset, Projects, Comment, Rating, Report, Donation
 from .serializers import *
 
+
+
+from rest_framework import filters
+
 import uuid
 ### Try With Unautheticated
 from rest_framework.permissions import AllowAny
@@ -259,6 +263,7 @@ def project_detail_template(request, pk):
         'project': project,
         'similar_projects': similar_projects
     })
+
 # Extra user info view
 class ExtraInfoMeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -328,3 +333,14 @@ def home_projects(request):
 
 
 
+
+# search by using tags and id
+class ProjectSearchView(generics.ListAPIView):
+    queryset = Projects.objects.prefetch_related("tags", "images").all()
+    serializer_class = ProjectSerializer
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'tags__name']
+
+    def get_serializer_context(self):
+        return {'request': self.request}

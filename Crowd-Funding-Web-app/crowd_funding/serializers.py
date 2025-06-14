@@ -210,6 +210,7 @@ class RatingSerializer(serializers.ModelSerializer):
         images = request.FILES.getlist('images')
         for image in images:
             ProjectImages.objects.create(project=project, image=image) 
+
         return project
 ## (add Project and list all projects)
 class ExtraInfoSerializer(serializers.ModelSerializer):
@@ -290,4 +291,5 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
             newtags.append(newtag)
         project=Projects.objects.create(category=newcategory,**validated_data)
         project.tags.set(newtags)
+
         return project
