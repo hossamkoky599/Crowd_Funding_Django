@@ -11,7 +11,14 @@ router.register(r'register', UserRegistrationView, basename='register')
 router.register(r'projects', ProjectView, basename='projects')
 
 urlpatterns = [
+<<<<<<< HEAD
     path('projects/search/', ProjectSearchView.as_view(), name='project-search'),
+=======
+    path('Cprojects/<int:pk>/cancel/', CancelProjectView.as_view(), name='cancel-project'),
+    path('projects/<int:pk>/template/', project_detail_template, name='project-detail-template'),
+    path('projects/<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
+    path('projects/<int:pk>/similar/', SimilarProjectsView.as_view(), name='similar-projects'),
+>>>>>>> 9606c829 (Handel Merge Conflict)
     path('', include(router.urls)),
     path('activate/<uuid:activation_key>/', ActivateAccountView.as_view(), name='activate'),
     path('login/', UserLoginView.as_view(), name='login'),
@@ -21,16 +28,17 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     #############################
     path('check-auth/', CheckAuthView.as_view(), name='check-auth'),
-    path('projects/<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
-    path('projects/<int:pk>/similar/', SimilarProjectsView.as_view(), name='similar-projects'),
+    
     path('comments/', CommentCreateView.as_view(), name='comment-create'),
     path('comments/list/', CommentListView.as_view(), name='comment-list'),
+<<<<<<< HEAD
   
+=======
+>>>>>>> 9606c829 (Handel Merge Conflict)
     path('projects/<int:pk>/rate/', RatingCreateView.as_view(), name='project-rate'),
     path('reports/', ReportCreateView.as_view(), name='report-create'),
     path('donations/', DonationCreateView.as_view(), name='donation-create'),
-    path('projects/<int:pk>/cancel/', CancelProjectView.as_view(), name='cancel-project'),
-    path('projects/<int:pk>/template/', project_detail_template, name='project-detail-template'),
+   
 
 
     path('extra-info/', ExtraInfoMeView.as_view(), name='extra-info-me'), 

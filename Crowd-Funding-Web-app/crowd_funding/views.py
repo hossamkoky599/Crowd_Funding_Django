@@ -17,6 +17,8 @@ from django.db.models import Sum
 from rest_framework import filters
 
 import uuid
+from django.db.models import Sum
+
 ### Try With Unautheticated
 from rest_framework.permissions import AllowAny
 # Register user and send activation email
@@ -223,6 +225,16 @@ class CommentCreateView(generics.CreateAPIView):
         )
 class CommentListView(generics.ListAPIView):
     serializer_class = CommentSerializer
+<<<<<<< HEAD
+=======
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            return Comment.objects.filter(project_id=project_id, parent=None).order_by('-created_at')
+        return Comment.objects.none()        
+
+>>>>>>> 9606c829 (Handel Merge Conflict)
 
     def get_queryset(self):
         project_id = self.request.query_params.get('project')
@@ -251,7 +263,10 @@ class RatingCreateView(generics.CreateAPIView):
         )
 
         return Response({"message": "Rating submitted successfully."}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9606c829 (Handel Merge Conflict)
 
 class ReportCreateView(generics.CreateAPIView):
     queryset = Report.objects.all()
@@ -276,6 +291,7 @@ class DonationCreateView(generics.CreateAPIView):
         project_id = self.request.data.get('project')
         project = Projects.objects.get(pk=project_id)
         
+<<<<<<< HEAD
         
         serializer.save(user=self.request.user, project=project)
      
@@ -284,6 +300,17 @@ class DonationCreateView(generics.CreateAPIView):
         project.totalDonations = total_donations
         project.save()
 
+=======
+        serializer.save(user=self.request.user, project=project)
+        
+        
+        total_donations = project.donations.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        project.totalDonations = total_donations
+        project.save()
+
+
+>>>>>>> 9606c829 (Handel Merge Conflict)
 
 class CancelProjectView(APIView):
     permission_classes = [permissions.IsAuthenticated]

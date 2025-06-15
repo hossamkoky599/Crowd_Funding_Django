@@ -13,8 +13,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password',
-                  'mobile_phone', 'profile_picture']
+        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'mobile_phone', 'profile_picture']
         extra_kwargs={'password':{'write_only':True}}
 
     def validate_email(self, value):
@@ -116,7 +115,9 @@ class ProjectSerializer(serializers.ModelSerializer):
     category = serializers.CharField()  
     tags = TagSerializer(many=True, read_only=True) 
     images = ProjectImagesSerializer(many=True, read_only=True)
+
     average_rating = serializers.SerializerMethodField()
+
     class Meta:
         model = Projects
         fields = '__all__' 
@@ -157,7 +158,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         ratings = obj.ratings.all()  
         if ratings.exists():
             return round(sum(r.score for r in ratings) / ratings.count(), 1)
+
         return None  
+
 
     ##################################
     # Project Details
@@ -218,6 +221,7 @@ class RatingSerializer(serializers.ModelSerializer):
         images = request.FILES.getlist('images')
         for image in images:
             ProjectImages.objects.create(project=project, image=image) 
+
 
 
         
@@ -303,3 +307,4 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
 
 
         return project
+
