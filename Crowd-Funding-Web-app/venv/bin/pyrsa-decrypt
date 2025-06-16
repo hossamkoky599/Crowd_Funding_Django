@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 #!/home/fatma/Documents/django/Crowd-Funding-BK/Crowd-Funding-Web-app/venv/bin/python3
+=======
+#!/bin/sh
+'''exec' "/mnt/my python/Django/Final_project/Crowd-Funding-BK/Crowd-Funding-Web-app/venv/bin/python3" "$0" "$@"
+' '''
+>>>>>>> 0398698b (handel replay and rating issue)
 # -*- coding: utf-8 -*-
 import re
 import sys

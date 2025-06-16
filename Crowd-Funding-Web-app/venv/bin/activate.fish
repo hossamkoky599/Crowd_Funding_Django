@@ -33,7 +33,11 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
+<<<<<<< HEAD
 set -gx VIRTUAL_ENV /home/fatma/Documents/django/Crowd-Funding-BK/Crowd-Funding-Web-app/venv
+=======
+set -gx VIRTUAL_ENV '/mnt/my python/Django/Final_project/Crowd-Funding-BK/Crowd-Funding-Web-app/venv'
+>>>>>>> 0398698b (handel replay and rating issue)
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

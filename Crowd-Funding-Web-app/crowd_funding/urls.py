@@ -24,11 +24,14 @@ urlpatterns = [
     path('projects/<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
     path('projects/<int:pk>/similar/', SimilarProjectsView.as_view(), name='similar-projects'),
     path('comments/', CommentCreateView.as_view(), name='comment-create'),
-    path('ratings/', RatingCreateView.as_view(), name='rating-create'),
+    path('comments/list/', CommentListView.as_view(), name='comment-list'),
+  
+    path('projects/<int:pk>/rate/', RatingCreateView.as_view(), name='project-rate'),
     path('reports/', ReportCreateView.as_view(), name='report-create'),
     path('donations/', DonationCreateView.as_view(), name='donation-create'),
     path('projects/<int:pk>/cancel/', CancelProjectView.as_view(), name='cancel-project'),
     path('projects/<int:pk>/template/', project_detail_template, name='project-detail-template'),
+
 
     path('extra-info/', ExtraInfoMeView.as_view(), name='extra-info-me'), 
     path('delete-account/', DeleteUserView.as_view(), name='delete-account'),

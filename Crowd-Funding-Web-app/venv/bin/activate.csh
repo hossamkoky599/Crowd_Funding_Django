@@ -8,7 +8,11 @@ alias deactivate 'test $?_OLD_VIRTUAL_PATH != 0 && setenv PATH "$_OLD_VIRTUAL_PA
 # Unset irrelevant variables.
 deactivate nondestructive
 
+<<<<<<< HEAD
 setenv VIRTUAL_ENV /home/fatma/Documents/django/Crowd-Funding-BK/Crowd-Funding-Web-app/venv
+=======
+setenv VIRTUAL_ENV '/mnt/my python/Django/Final_project/Crowd-Funding-BK/Crowd-Funding-Web-app/venv'
+>>>>>>> 0398698b (handel replay and rating issue)
 
 set _OLD_VIRTUAL_PATH="$PATH"
 setenv PATH "$VIRTUAL_ENV/"bin":$PATH"

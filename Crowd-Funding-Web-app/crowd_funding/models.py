@@ -107,13 +107,18 @@ class Projects(models.Model):
     is_approved = models.BooleanField(default=False)  
     is_canceled = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
-
+    totalDonations = models.FloatField(default=0)  
+    average_rating = models.FloatField(default=0)  
 ##########################NOTE
 
 
     def can_cancel(self):
         total_donations = sum(donation.amount for donation in self.donations.all())
         return total_donations < (self.totalTarget * 0.25)
+        
+    @property
+    def average_rating(self):
+        return self.ratings.aggregate(avg=models.Avg('score'))['avg'] or 0
 
 
 

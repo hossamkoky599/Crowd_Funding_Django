@@ -38,8 +38,20 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV=/home/fatma/Documents/django/Crowd-Funding-BK/Crowd-Funding-Web-app/venv
-export VIRTUAL_ENV
+
+# VIRTUAL_ENV=/home/fatma/Documents/django/Crowd-Funding-BK/Crowd-Funding-Web-app/venv
+# export VIRTUAL_ENV
+
+# on Windows, a path can contain colons and backslashes and has to be converted:
+if [ "${OSTYPE:-}" = "cygwin" ] || [ "${OSTYPE:-}" = "msys" ] ; then
+    # transform D:\path\to\venv to /d/path/to/venv on MSYS
+    # and to /cygdrive/d/path/to/venv on Cygwin
+    export VIRTUAL_ENV=$(cygpath '/mnt/my python/Django/Final_project/Crowd-Funding-BK/Crowd-Funding-Web-app/venv')
+else
+    # use the path as-is
+    export VIRTUAL_ENV='/mnt/my python/Django/Final_project/Crowd-Funding-BK/Crowd-Funding-Web-app/venv'
+fi
+
 
 _OLD_VIRTUAL_PATH="$PATH"
 PATH="$VIRTUAL_ENV/"bin":$PATH"
