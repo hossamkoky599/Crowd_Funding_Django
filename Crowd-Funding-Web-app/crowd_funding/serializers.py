@@ -116,7 +116,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True) 
     images = ProjectImagesSerializer(many=True, read_only=True)
 
-    average_rating = serializers.SerializerMethodField()
+    avg_rating = serializers.FloatField(read_only=True, default=0)
 
     class Meta:
         model = Projects
