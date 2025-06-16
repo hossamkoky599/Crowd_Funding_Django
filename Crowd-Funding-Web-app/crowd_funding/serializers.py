@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.backends import ModelBackend
 from .models import *
 import re
+import project
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -12,8 +13,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password',
-                  'mobile_phone', 'profile_picture']
+        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'mobile_phone', 'profile_picture']
         extra_kwargs={'password':{'write_only':True}}
 
     def validate_email(self, value):
@@ -116,9 +116,11 @@ class ProjectSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True) 
     images = ProjectImagesSerializer(many=True, read_only=True)
 
+    average_rating = serializers.SerializerMethodField()
+
     class Meta:
         model = Projects
-        fields = ['id', 'title', 'details', 'totalTarget', 'startTime', 'endTime', 'uid', 'category', 'tags', 'images']
+        fields = '__all__' 
         extra_kwargs = {
             'uid': {'read_only': True}
         }
@@ -151,18 +153,27 @@ class ProjectSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         print("Incoming data to ProjectSerializer:", data)
         return super().to_internal_value(data)
-        
+
+    def get_average_rating(self, obj):
+        ratings = obj.ratings.all()  
+        if ratings.exists():
+            return round(sum(r.score for r in ratings) / ratings.count(), 1)
+
+        return None  
+
 
     ##################################
     # Project Details
+
 class DonationSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
-    project = ProjectSerializer(read_only=True)
+    project = serializers.PrimaryKeyRelatedField(queryset=Projects.objects.all())
 
     class Meta:
         model = Donation
         fields = ['id', 'project', 'user', 'amount', 'created_at']
         read_only_fields = ['user', 'created_at']
+
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
@@ -211,7 +222,9 @@ class RatingSerializer(serializers.ModelSerializer):
         for image in images:
             ProjectImages.objects.create(project=project, image=image) 
 
-        return project
+
+
+        
 ## (add Project and list all projects)
 class ExtraInfoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -292,4 +305,6 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
         project=Projects.objects.create(category=newcategory,**validated_data)
         project.tags.set(newtags)
 
+
         return project
+

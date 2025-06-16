@@ -103,10 +103,17 @@ class Projects(models.Model):
     uid=models.ForeignKey('User',on_delete=models.CASCADE)
     category=models.ForeignKey('Category',on_delete=models.SET_NULL,null=True)
     tags=models.ManyToManyField('Tag',blank=True)
+
     is_featured = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=False)  
     is_canceled = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
+    totalDonations = models.FloatField(default=0)  
+    average_rating = models.FloatField(default=0)  
+
+    def __str__(self):
+        return self.title
+
 
 ##########################NOTE
 
@@ -114,6 +121,10 @@ class Projects(models.Model):
     def can_cancel(self):
         total_donations = sum(donation.amount for donation in self.donations.all())
         return total_donations < (self.totalTarget * 0.25)
+        
+    @property
+    def average_rating(self):
+        return self.ratings.aggregate(avg=models.Avg('score'))['avg'] or 0
 
 
 

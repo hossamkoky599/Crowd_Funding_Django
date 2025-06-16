@@ -11,12 +11,14 @@ from django.conf import settings
 from django.contrib.auth import login
 from .models import User, EmailActivation, PasswordReset, Projects, Comment, Rating, Report, Donation
 from .serializers import *
-
+from django.db.models import Sum
 
 
 from rest_framework import filters
 
 import uuid
+from django.db.models import Sum
+
 ### Try With Unautheticated
 from rest_framework.permissions import AllowAny
 # Register user and send activation email
@@ -196,28 +198,63 @@ class SimilarProjectsView(APIView):
         except Projects.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+
 class CommentCreateView(generics.CreateAPIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        project_id = self.request.data.get('project_id')
-        parent_id = self.request.data.get('parent_id')
+        parent_id = self.request.data.get('parent')
+        parent_comment = Comment.objects.filter(pk=parent_id).first() if parent_id else None
+
+        if parent_comment:
+            # Reply: use the project from the parent
+            project = parent_comment.project
+        else:
+            # Normal comment: get project from data
+            project_id = self.request.data.get('project')
+            if not project_id:
+                raise serializers.ValidationError("Project ID is required for top-level comments.")
+            project = Projects.objects.get(pk=project_id)
+
         serializer.save(
             user=self.request.user,
-            project=Projects.objects.get(pk=project_id),
-            parent=Comment.objects.get(pk=parent_id) if parent_id else None
+            project=project,
+            parent=parent_comment
         )
+class CommentListView(generics.ListAPIView):
+    serializer_class = CommentSerializer
 
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            return Comment.objects.filter(project_id=project_id, parent=None).order_by('-created_at')
+        return Comment.objects.none()     
+    
 class RatingCreateView(generics.CreateAPIView):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        project_id = self.request.data.get('project_id')
-        serializer.save(user=self.request.user, project=Projects.objects.get(pk=project_id))
+    def create(self, request, *args, **kwargs):
+        project_id = self.kwargs['pk'] 
+        value = request.data.get('value')
+
+        if not (1 <= int(value) <= 5):
+            return Response({"error": "Invalid rating value. Must be 1 to 5."}, status=status.HTTP_400_BAD_REQUEST)
+
+        project = get_object_or_404(Projects, pk=project_id)
+
+        rating, created = Rating.objects.update_or_create(
+            user=request.user,
+            project=project,
+            defaults={'score': value}
+        )
+
+        return Response({"message": "Rating submitted successfully."}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
 
 class ReportCreateView(generics.CreateAPIView):
     queryset = Report.objects.all()
@@ -239,8 +276,20 @@ class DonationCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        project_id = self.request.data.get('project_id')
-        serializer.save(user=self.request.user, project=Projects.objects.get(pk=project_id))
+        project_id = self.request.data.get('project')
+        project = Projects.objects.get(pk=project_id)
+        
+
+        serializer.save(user=self.request.user, project=project)
+        
+        
+        total_donations = project.donations.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        project.totalDonations = total_donations
+        project.save()
+
+
+
 
 class CancelProjectView(APIView):
     permission_classes = [permissions.IsAuthenticated]
